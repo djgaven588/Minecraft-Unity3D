@@ -44,9 +44,8 @@ public struct Particle
                 Scale = PacketReader.ReadSingle(reader);
                 break;
             case ParticleType.MinecraftItem:
-                //ReadSlotData(reader, out slotData);
-                throw new NotImplementedException("Particle: SlotData is not yet handled");
-                //break;
+                PacketReader.ReadSlotData(reader, out slotData);
+                break;
         }
     }
 

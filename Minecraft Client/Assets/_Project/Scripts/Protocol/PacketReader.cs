@@ -99,6 +99,17 @@ public static class PacketReader
     }
 
     /// <summary>
+    /// Reads an unsigned Int16 from the given BinaryReader
+    /// </summary>
+    /// <param name="reader">The reader to use</param>
+    /// <returns>The read unsigned Int16</returns>
+    public static ushort ReadUInt16(in BinaryReader reader)
+    {
+        byte[] uShortData = reader.ReadBytes(2);
+        return BitConverter.ToUInt16(uShortData.ReverseIfLittleEndian(), 0);
+    }
+
+    /// <summary>
     /// Reads an int32 (int) from the given BinaryReader
     /// </summary>
     /// <param name="reader">The reader to use</param>
@@ -156,35 +167,23 @@ public static class PacketReader
     }
 
     /// <summary>
-    /// Reads NBT data from the given BinaryReader
-    /// </summary>
-    /// <param name="reader">The reader to use</param>
-    /// <param name="nbtData">The read NBT data (complex)</param>
-    /*
-    public static void ReadNbtData(in BinaryReader reader, out NbtCompound nbtData)
-    {
-        throw new NotImplementedException("NBT Data is not yet supported");
-    }*/
-
-    /// <summary>
     /// Reads SlotData from the given BinaryReader
     /// </summary>
     /// <param name="reader">The reader to use</param>
     /// <param name="slotData">The read slot data (inventory slot)</param>
-    /*
     public static void ReadSlotData(in BinaryReader reader, out SlotData slotData)
     {
-        ReadBoolean(reader, out bool present);
+        bool present = ReadBoolean(reader);
         if (!present)
-            slotData = new SlotData(false, 0, 0, null);
+            slotData = new SlotData(present, 0, 0, new NbtHandler.Tag());
         else
         {
-            ReadVarInt(reader, out int itemID);
-            ReadByte(reader, out byte count);
-            ReadNbtData(reader, out NbtCompound nbt);
-            slotData = new SlotData(true, itemID, count, nbt);
+            int itemID = ReadVarInt(reader);
+            byte count = ReadByte(reader);
+            NbtHandler.Tag nbt = NbtHandler.ProcessStream(reader);
+            slotData = new SlotData(present, itemID, count, nbt);
         }
-    }*/
+    }
     
     /// <summary>
     /// Reads a Particle from the given BinaryReader
