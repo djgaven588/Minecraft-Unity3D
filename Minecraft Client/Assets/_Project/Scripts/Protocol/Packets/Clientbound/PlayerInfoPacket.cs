@@ -8,287 +8,122 @@ using UnityEngine;
 
 public class PlayerInfoPacket : Packet
 {
-    public PlayerInfoPacket()
+	public PlayerInfoPacket()
 	{
 		PacketID = (int)ClientboundIDs.PlayerInfo;
 	}
 
-    public PlayerInfoPacket(PacketData data) : base(data) { } // packet id should be set correctly if this ctor is used
+	public PlayerInfoPacket(PacketData data) : base(data) { } // packet id should be set correctly if this ctor is used
 
-    public override byte[] Payload
-    {
-        get => throw new NotImplementedException();
-        set
-        {
-            using (MemoryStream stream = new MemoryStream(value))
-            {
-                using (BinaryReader reader = new BinaryReader(stream))
-                {
-                    int msgAction = PacketReader.ReadVarInt(reader);
-                    PacketAction = (InfoPacketAction)msgAction;
-
-                    int playerCount = PacketReader.ReadVarInt(reader);
-
-                    switch (PacketAction)
-                    {
-                        case InfoPacketAction.AddPlayer:
-                            Queue<AddPlayerAction> addedPlayers = new Queue<AddPlayerAction>();
-
-                            for (int i = 0; i < playerCount; i++)
-                            {
-                                Guid guid = PacketReader.ReadGUID(reader);
-
-                                string name = PacketReader.ReadString(reader);
-                                int propertyCount = PacketReader.ReadVarInt(reader);
-
-                                Queue<Property> properties = new Queue<Property>();
-                                for (int prop = 0; prop < propertyCount; prop++)
-                                {
-                                    string propertyName = PacketReader.ReadString(reader);
-                                    string propertyValue = PacketReader.ReadString(reader);
-                                    bool isSigned = PacketReader.ReadBoolean(reader);
-
-                                    string signature = "";
-                                    if (isSigned)
-                                    {
-                                        signature = PacketReader.ReadString(reader);
-                                    }
-
-                                    properties.Enqueue(new Property(propertyName, propertyValue, isSigned, signature));
-                                }
-
-                                GameMode gameMode = (GameMode)PacketReader.ReadVarInt(reader);
-                                int ping = PacketReader.ReadVarInt(reader);
-                                bool hasDisplayName = PacketReader.ReadBoolean(reader);
-
-                                string displayName = "";
-                                if (hasDisplayName)
-                                {
-                                    displayName = PacketReader.ReadString(reader);
-                                }
-
-                                addedPlayers.Enqueue(new AddPlayerAction(guid, name, properties.ToArray(), gameMode, ping, hasDisplayName, displayName));
-                            }
-
-                            AddPlayerActions = addedPlayers.ToArray();
-
-                            break;
-                        case InfoPacketAction.UpdateGameMode:
-                            Queue<UpdateGamemodeAction> updatedGamemodes = new Queue<UpdateGamemodeAction>();
-
-                            for (int i = 0; i < playerCount; i++)
-                            {
-                                Guid guid = PacketReader.ReadGUID(reader);
-                                GameMode gameMode = (GameMode)PacketReader.ReadVarInt(reader);
-
-                                updatedGamemodes.Enqueue(new UpdateGamemodeAction(guid, gameMode));
-                            }
-
-                            UpdateGamemodeActions = updatedGamemodes.ToArray();
-                            break;
-                        case InfoPacketAction.UpdateLatency:
-
-                            Queue<UpdateLatencyAction> updatedLatencies = new Queue<UpdateLatencyAction>();
-
-                            for (int i = 0; i < playerCount; i++)
-                            {
-                                Guid guid = PacketReader.ReadGUID(reader);
-                                int ping = PacketReader.ReadVarInt(reader);
-
-                                updatedLatencies.Enqueue(new UpdateLatencyAction(guid, ping));
-                            }
-
-                            UpdateLatencyActions = updatedLatencies.ToArray();
-
-                            break;
-                        case InfoPacketAction.UpdateDisplayName:
-
-                            Queue<UpdateDisplayNameAction> updatedDisplayNames = new Queue<UpdateDisplayNameAction>();
-
-                            for (int i = 0; i < playerCount; i++)
-                            {
-                                Guid guid = PacketReader.ReadGUID(reader);
-                                bool hasDisplayName = PacketReader.ReadBoolean(reader);
-
-                                string displayName = "";
-                                if (hasDisplayName)
-                                {
-                                    displayName = PacketReader.ReadString(reader);
-                                }
-
-                                updatedDisplayNames.Enqueue(new UpdateDisplayNameAction(guid, hasDisplayName, displayName));
-                            }
-
-                            UpdateDisplayNameActions = updatedDisplayNames.ToArray();
-
-                            break;
-                        case InfoPacketAction.RemovePlayer:
-
-                            Queue<RemovePlayerAction> removedPlayerActions = new Queue<RemovePlayerAction>();
-
-                            for (int i = 0; i < playerCount; i++)
-                            {
-                                Guid guid = PacketReader.ReadGUID(reader);
-
-                                removedPlayerActions.Enqueue(new RemovePlayerAction(guid));
-                            }
-
-                            RemovePlayerActions = removedPlayerActions.ToArray();
-                            break;
-                        default:
-                            break;
-                    }
-                }
-            }
-        }
-    }
-
-    public override string ToString()
-    {
-        StringBuilder outputString = new StringBuilder();
-        switch (PacketAction)
-        {
-            case InfoPacketAction.AddPlayer:
-                outputString.Append("PlayerInfoPacket: Action AddPlayer, ");
-                for (int i = 0; i < AddPlayerActions.Length; i++)
-                {
-                    outputString.Append($"For GUID {AddPlayerActions[i].Guid} with name {AddPlayerActions[i].Name} with {AddPlayerActions[i].Properties.Length} properties in game mode {AddPlayerActions[i].GameMode} with ping {AddPlayerActions[i].Ping} has display name is {AddPlayerActions[i].HasDisplayName} with a display name of {AddPlayerActions[i].DisplayName}{((i + 1 != AddPlayerActions.Length) ? "," : "") }");
-                }
-                break;
-            case InfoPacketAction.UpdateGameMode:
-                outputString.Append("PlayerInfoPacket: Action UpdateGameMode, ");
-                for (int i = 0; i < UpdateGamemodeActions.Length; i++)
-                {
-                    outputString.Append($"For GUID {UpdateGamemodeActions[i].Guid} new gamemode {UpdateGamemodeActions[i].GameMode}{((i + 1 != UpdateGamemodeActions.Length) ? "," : "") }");
-                }
-                break;
-            case InfoPacketAction.UpdateLatency:
-                outputString.Append("PlayerInfoPacket: Action UpdateLatency, ");
-                for (int i = 0; i < UpdateLatencyActions.Length; i++)
-                {
-                    outputString.Append($"For GUID {UpdateLatencyActions[i].Guid} new latency {UpdateLatencyActions[i].Ping}{((i + 1 != UpdateLatencyActions.Length) ? "," : "") }");
-                }
-                break;
-            case InfoPacketAction.UpdateDisplayName:
-                outputString.Append("PlayerInfoPacket: Action UpdateGameMode, ");
-                for (int i = 0; i < UpdateDisplayNameActions.Length; i++)
-                {
-                    outputString.Append($"For GUID {UpdateDisplayNameActions[i].Guid} hasDisplayName {UpdateDisplayNameActions[i].HasDisplayName} display name {UpdateDisplayNameActions[i].DisplayName}{((i + 1 != UpdateDisplayNameActions.Length) ? "," : "") }");
-                }
-                break;
-            case InfoPacketAction.RemovePlayer:
-                outputString.Append("PlayerInfoPacket: Action RemovePlayer, ");
-                for (int i = 0; i < RemovePlayerActions.Length; i++)
-                {
-                    outputString.Append($"For GUID {RemovePlayerActions[i].Guid}{((i + 1 != RemovePlayerActions.Length) ? "," : "") }");
-                }
-                break;
-            default:
-                break;
-        }
-
-        return outputString.ToString();
-    }
-
-    public InfoPacketAction PacketAction { get; private set; }
-    public AddPlayerAction[] AddPlayerActions { get; private set; }
-    public UpdateGamemodeAction[] UpdateGamemodeActions { get; private set; }
-    public UpdateLatencyAction[] UpdateLatencyActions { get; private set; }
-    public UpdateDisplayNameAction[] UpdateDisplayNameActions { get; private set; }
-    public RemovePlayerAction[] RemovePlayerActions { get; private set; }
-
-    public struct AddPlayerAction
-    {
-        public Guid Guid { get; }
-        public string Name { get; }
-        public Property[] Properties { get; }
-        public GameMode GameMode { get; }
-        public int Ping { get; }
-        public bool HasDisplayName { get; }
-        public string DisplayName { get; }
-
-        public AddPlayerAction(Guid guid, string name, Property[] properties, GameMode gameMode, int ping, bool hasDisplayName, string displayName)
-        {
-            Guid = guid;
-            Name = name;
-            Properties = properties;
-            GameMode = gameMode;
-            Ping = ping;
-            HasDisplayName = hasDisplayName;
-            DisplayName = displayName;
-        }
-    }
-
-	public struct Property
+	public Action[] Actions { get; set; }
+	public ActionType Type { get; set; }
+	public override byte[] Payload
 	{
-        public string Name { get; }
-        public string Value { get; }
-        public bool IsSigned { get; }
-        public string Signature { get; }
+		get => throw new NotImplementedException();
+		set
+		{
+			using (MemoryStream stream = new MemoryStream(value))
+			{
+				using (BinaryReader reader = new BinaryReader(stream))
+				{
+					Type = (ActionType)PacketReader.ReadVarInt(reader);
+					int actionCount = PacketReader.ReadVarInt(reader);
+					Actions = new Action[actionCount];
 
-        public Property(string name, string value, bool isSigned, string signature)
-        {
-            Name = name;
-            Value = value;
-            IsSigned = isSigned;
-            Signature = signature;
-        }
+					for (int i = 0; i < Actions.Length; i++)
+					{
+						var action = new Action
+						{
+							UUID = PacketReader.ReadGuid(reader)
+						};
+
+						switch (Type)
+						{
+							case ActionType.AddPlayer:
+								action.Name = PacketReader.ReadString(reader);
+
+								// read property array
+								action.Properties = new Property[PacketReader.ReadVarInt(reader)];
+								for (int j = 0; j < action.Properties.Length; j++)
+								{
+									var prop = new Property
+									{
+										Name = PacketReader.ReadString(reader),
+										Value = PacketReader.ReadString(reader),
+										Signed = PacketReader.ReadBoolean(reader)
+									};
+
+									// signature only exists if Signed = true
+									if (prop.Signed)
+									{
+										prop.Signature = PacketReader.ReadString(reader);
+									}
+								}
+
+								action.GameMode = (GameMode)PacketReader.ReadVarInt(reader);
+								action.Ping = PacketReader.ReadVarInt(reader);
+								
+								// displayname only exists if HasDisplayName = true
+								if (PacketReader.ReadBoolean(reader))   // read has display name
+								{
+									string displayNameJson = PacketReader.ReadString(reader);
+									action.DisplayName = ChatComponent.FromJson(displayNameJson);
+								}
+								break;
+							case ActionType.UpdateGameMode:
+								action.GameMode = (GameMode)PacketReader.ReadVarInt(reader);
+								break;
+							case ActionType.UpdateLatency:
+								action.Ping = PacketReader.ReadVarInt(reader);
+								break;
+							case ActionType.UpdateDisplayName:
+								// displayname only exists if HasDisplayName = true
+								if (PacketReader.ReadBoolean(reader))	// read has display name
+								{
+									string displayNameJson = PacketReader.ReadString(reader);
+									action.DisplayName = ChatComponent.FromJson(displayNameJson);
+								}
+								break;
+							case ActionType.RemovePlayer:
+								break;
+							default:
+								throw new Exception($"Unknown PlayerInfo action type: {Type}");
+						}
+
+						Actions[i] = action;
+					}
+				}
+			}
+		}
 	}
 
-	public struct UpdateGamemodeAction
+	/// <summary>
+	/// Class for a player update action https://wiki.vg/Protocol#Player_Info
+	/// </summary>
+	public partial class Action
 	{
-        public Guid Guid { get; }
-        public GameMode GameMode { get; }
-
-        public UpdateGamemodeAction(Guid guid, GameMode gameMode)
-        {
-            Guid = guid;
-            GameMode = gameMode;
-        }
+		public Guid UUID { get; set; }
+		public string Name { get; set; }
+		public Property[] Properties { get; set; }
+		public GameMode GameMode { get; set; }
+		public int Ping { get; set; }
+		public ChatComponent DisplayName { get; set; } = null;
 	}
 
-    public struct UpdateLatencyAction
-    {
-        public Guid Guid { get; }
-        public int Ping { get; }
+	public class Property
+	{
+		public string Name { get; set; }
+		public string Value { get; set; }
+		public bool Signed { get; set; }
+		public string Signature { get; set; }
+	}
 
-        public UpdateLatencyAction(Guid guid, int ping)
-        {
-            Guid = guid;
-            Ping = ping;
-        }
-    }
-
-    public struct UpdateDisplayNameAction
-    {
-        public Guid Guid { get; }
-        public bool HasDisplayName { get; }
-        public string DisplayName { get; }
-
-        public UpdateDisplayNameAction(Guid guid, bool hasDisplayName, string displayName)
-        {
-            Guid = guid;
-            HasDisplayName = hasDisplayName;
-            DisplayName = displayName;
-        }
-    }
-
-    public struct RemovePlayerAction
-    {
-        public Guid Guid { get; }
-
-        public RemovePlayerAction(Guid guid)
-        {
-            Guid = guid;
-        }
-    }
-
-    public enum InfoPacketAction
-    {
-        AddPlayer,
-        UpdateGameMode,
-        UpdateLatency,
-        UpdateDisplayName,
-        RemovePlayer
-    }
+	public enum ActionType
+	{
+		AddPlayer = 0,
+		UpdateGameMode = 1,
+		UpdateLatency = 2,
+		UpdateDisplayName = 3,
+		RemovePlayer = 4
+	}
 }

@@ -5,8 +5,8 @@ TagManager:
   serializedVersion: 2
   tags:
   - Loading Screen Controller
+  - ReferenceLinker
   - Chunk Renderer
-  - Chat
   layers:
   - Default
   - TransparentFX
@@ -18,7 +18,7 @@ TagManager:
   - 
   - PostProcessing
   - Entities
-  - 
+  - PlayerCamera
   - 
   - 
   - 
