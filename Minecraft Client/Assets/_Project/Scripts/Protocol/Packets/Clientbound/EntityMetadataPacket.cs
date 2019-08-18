@@ -7,204 +7,204 @@ using UnityEngine;
 
 public class EntityMetadataPacket : Packet
 {
-    public EntityMetadataPacket()
-    {
-        PacketID = (int)ClientboundIDs.ENTITY_METADATA;
-    }
+	public EntityMetadataPacket()
+	{
+		PacketID = (int)ClientboundIDs.EntityMetadata;
+	}
 
-    public EntityMetadataPacket(PacketData data) : base(data) { }
+	public EntityMetadataPacket(PacketData data) : base(data) { }
 
-    public override byte[] Payload
-    {
-        get => throw new NotImplementedException();
-        set
-        {
-            using (MemoryStream stream = new MemoryStream(value))
-            {
-                using (BinaryReader reader = new BinaryReader(stream))
-                {
-                    Queue<EntityMetadataEntry> metaDataEntries = new Queue<EntityMetadataEntry>();
-                    PacketReader.ReadByte(reader, out byte indexKey);
-                    while (indexKey != 0xFF)
-                    {
-                        PacketReader.ReadVarInt(reader, out int type);
+	public override byte[] Payload
+	{
+		get => throw new NotImplementedException();
+		set
+		{
+			using (MemoryStream stream = new MemoryStream(value))
+			{
+				using (BinaryReader reader = new BinaryReader(stream))
+				{
+					Queue<EntityMetadataEntry> metaDataEntries = new Queue<EntityMetadataEntry>();
+					byte indexKey = PacketReader.ReadByte(reader);
+					while (indexKey != 0xFF)
+					{
+						int type = PacketReader.ReadVarInt(reader);
 
-                        switch ((EntityMetadataEntry.MetadataType)type)
-                        {
-                            case EntityMetadataEntry.MetadataType.Byte:
-                                PacketReader.ReadByte(reader, out byte byteResult);
-                                metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { byteValue = byteResult });
-                                break;
-                            case EntityMetadataEntry.MetadataType.VarInt:
-                                PacketReader.ReadVarInt(reader, out int varIntResult);
-                                metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { varIntValue = varIntResult });
-                                break;
-                            case EntityMetadataEntry.MetadataType.Float:
-                                PacketReader.ReadFloat(reader, out float floatResult);
-                                metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { floatValue = floatResult });
-                                break;
-                            case EntityMetadataEntry.MetadataType.String:
-                                PacketReader.ReadString(reader, out string stringResult);
-                                metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { stringValue = stringResult });
-                                break;
-                            case EntityMetadataEntry.MetadataType.Chat:
-                                PacketReader.ReadString(reader, out string chatResult);
-                                metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { stringValue = chatResult });
-                                break;
-                            case EntityMetadataEntry.MetadataType.OptChat:
-                                PacketReader.ReadBoolean(reader, out bool optBoolChatResult);
+						switch ((EntityMetadataEntry.MetadataType)type)
+						{
+							case EntityMetadataEntry.MetadataType.Byte:
+								byte byteResult = PacketReader.ReadByte(reader);
+								metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { ByteValue = byteResult });
+								break;
+							case EntityMetadataEntry.MetadataType.VarInt:
+								int varIntResult = PacketReader.ReadVarInt(reader);
+								metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { VarIntValue = varIntResult });
+								break;
+							case EntityMetadataEntry.MetadataType.Float:
+								float floatResult = PacketReader.ReadSingle(reader);
+								metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { FloatValue = floatResult });
+								break;
+							case EntityMetadataEntry.MetadataType.String:
+								string stringResult = PacketReader.ReadString(reader);
+								metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { StringValue = stringResult });
+								break;
+							case EntityMetadataEntry.MetadataType.Chat:
+								string chatResult = PacketReader.ReadString(reader);
+								metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { StringValue = chatResult });
+								break;
+							case EntityMetadataEntry.MetadataType.OptChat:
+								bool optBoolChatResult = PacketReader.ReadBoolean(reader);
 
-                                string optChatResult = null;
-                                if (optBoolChatResult)
-                                {
-                                    PacketReader.ReadString(reader, out optChatResult);
-                                }
+								string optChatResult = null;
+								if (optBoolChatResult)
+								{
+									optChatResult = PacketReader.ReadString(reader);
+								}
 
-                                metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { boolValue = optBoolChatResult, stringValue = optChatResult });
-                                break;
-                            case EntityMetadataEntry.MetadataType.Slot:
-                                throw new NotImplementedException("NBT Data is not yet supported");
-                                //PacketReader.ReadSlotData(reader, out SlotData slotDataResult);
-                                //metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { slotDataValue = slotDataResult });
-                                break;
-                            case EntityMetadataEntry.MetadataType.Boolean:
-                                PacketReader.ReadBoolean(reader, out bool booleanResult);
-                                metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { boolValue = booleanResult });
-                                break;
-                            case EntityMetadataEntry.MetadataType.Rotation:
-                                PacketReader.ReadRotation(reader, out Vector3 rotationResult);
-                                metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { rotationValue = rotationResult });
-                                break;
-                            case EntityMetadataEntry.MetadataType.Position:
-                                PacketReader.ReadPosition(reader, out Position positionResult);
-                                metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { positionValue = positionResult });
-                                break;
-                            case EntityMetadataEntry.MetadataType.OptPosition:
-                                PacketReader.ReadBoolean(reader, out bool optBoolPositionResult);
+								metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { BoolValue = optBoolChatResult, StringValue = optChatResult });
+								break;
+							case EntityMetadataEntry.MetadataType.Slot:
+								throw new NotImplementedException("NBT Data is not yet supported");
+							//PacketReader.ReadSlotData(reader, out SlotData slotDataResult);
+							//metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { slotDataValue = slotDataResult });
+							//break;
+							case EntityMetadataEntry.MetadataType.Boolean:
+								bool booleanResult = PacketReader.ReadBoolean(reader);
+								metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { BoolValue = booleanResult });
+								break;
+							case EntityMetadataEntry.MetadataType.Rotation:
+								Vector3 rotationResult = PacketReader.ReadRotation(reader);
+								metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { RotationValue = rotationResult });
+								break;
+							case EntityMetadataEntry.MetadataType.Position:
+								BlockPos positionResult = PacketReader.ReadPosition(reader);
+								metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { PositionValue = positionResult });
+								break;
+							case EntityMetadataEntry.MetadataType.OptPosition:
+								bool optBoolPositionResult = PacketReader.ReadBoolean(reader);
 
-                                Position optPositionResult = new Position();
-                                if (optBoolPositionResult)
-                                {
-                                    PacketReader.ReadPosition(reader, out optPositionResult);
-                                }
+								BlockPos optPositionResult = new BlockPos();
+								if (optBoolPositionResult)
+								{
+									optPositionResult = PacketReader.ReadPosition(reader);
+								}
 
-                                metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { boolValue = optBoolPositionResult, positionValue = optPositionResult });
-                                break;
-                            case EntityMetadataEntry.MetadataType.Direction:
-                                PacketReader.ReadVarInt(reader, out int directionResult);
-                                metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { varIntValue = directionResult });
-                                break;
-                            case EntityMetadataEntry.MetadataType.OptUUID:
-                                PacketReader.ReadBoolean(reader, out bool optBoolUuidResult);
+								metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { BoolValue = optBoolPositionResult, PositionValue = optPositionResult });
+								break;
+							case EntityMetadataEntry.MetadataType.Direction:
+								int directionResult = PacketReader.ReadVarInt(reader);
+								metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { VarIntValue = directionResult });
+								break;
+							case EntityMetadataEntry.MetadataType.OptUUID:
+								bool optBoolUuidResult = PacketReader.ReadBoolean(reader);
 
-                                Guid optUuidResult = new Guid();
-                                if (optBoolUuidResult)
-                                {
-                                    PacketReader.ReadGUID(reader, out optUuidResult);
-                                }
+								Guid optUuidResult = new Guid();
+								if (optBoolUuidResult)
+								{
+									optUuidResult = PacketReader.ReadGuid(reader);
+								}
 
-                                metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { boolValue = optBoolUuidResult, guidValue = optUuidResult });
-                                break;
-                            case EntityMetadataEntry.MetadataType.OptBlockID:
-                                PacketReader.ReadBoolean(reader, out bool optBoolBlockIDResult);
+								metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { BoolValue = optBoolUuidResult, GuidValue = optUuidResult });
+								break;
+							case EntityMetadataEntry.MetadataType.OptBlockID:
+								bool optBoolBlockIDResult = PacketReader.ReadBoolean(reader);
 
-                                int optBlockIDResult = 0;
-                                if (optBoolBlockIDResult)
-                                {
-                                    PacketReader.ReadVarInt(reader, out optBlockIDResult);
-                                }
+								int optBlockIDResult = 0;
+								if (optBoolBlockIDResult)
+								{
+									optBlockIDResult = PacketReader.ReadVarInt(reader);
+								}
 
-                                metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { boolValue = optBoolBlockIDResult, varIntValue = optBlockIDResult });
-                                break;
-                            case EntityMetadataEntry.MetadataType.NBT:
-                                throw new NotImplementedException("NBT Data is not yet supported");
-                                //PacketReader.ReadNbtData(reader, out NbtCompound nbtDataResult);
-                                //metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { nbtValue = nbtDataResult });
-                                break;
-                            case EntityMetadataEntry.MetadataType.Particle:
-                                PacketReader.ReadParticle(reader, out Particle particle);
-                                metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { particleValue = particle });
-                                break;
-                            default:
-                                break;
-                        }
+								metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { BoolValue = optBoolBlockIDResult, VarIntValue = optBlockIDResult });
+								break;
+							case EntityMetadataEntry.MetadataType.NBT:
+								throw new NotImplementedException("NBT Data is not yet supported");
+							//PacketReader.ReadNbtData(reader, out NbtCompound nbtDataResult);
+							//metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { nbtValue = nbtDataResult });
+							//break;
+							case EntityMetadataEntry.MetadataType.Particle:
+								Particle particle = PacketReader.ReadParticle(reader);
+								metaDataEntries.Enqueue(new EntityMetadataEntry(indexKey, (EntityMetadataEntry.MetadataType)type) { ParticleValue = particle });
+								break;
+							default:
+								break;
+						}
 
-                        PacketReader.ReadByte(reader, out indexKey);
-                    }
+						indexKey = PacketReader.ReadByte(reader);
+					}
 
-                    entries = metaDataEntries.ToArray();
-                }
-            }
-            
-        }
-    }
+					Entries = metaDataEntries.ToArray();
+				}
+			}
 
-    public EntityMetadataEntry[] entries;
+		}
+	}
 
-    public override string ToString()
-    {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.Append("EntityMetadataPacket: ");
-        for (int i = 0; i < entries.Length; i++)
-        {
-            stringBuilder.Append($"[{entries[i].indexKey}, {entries[i].type}]{(entries.Length - 1 == i ? "" : ", ")}");
-        }
+	public EntityMetadataEntry[] Entries;
 
-        return stringBuilder.ToString();
-    }
+	public override string ToString()
+	{
+		StringBuilder stringBuilder = new StringBuilder();
+		stringBuilder.Append("EntityMetadataPacket: ");
+		for (int i = 0; i < Entries.Length; i++)
+		{
+			stringBuilder.Append($"[{Entries[i].IndexKey}, {Entries[i].MetaType}]{(Entries.Length - 1 == i ? "" : ", ")}");
+		}
 
-    public struct EntityMetadataEntry
-    {
-        public byte indexKey;
-        public MetadataType type;
+		return stringBuilder.ToString();
+	}
 
-        public byte byteValue;
-        public int varIntValue;
-        public float floatValue;
-        public bool boolValue;
-        public string stringValue;
-        public SlotData slotDataValue;
-        public Vector3 rotationValue;
-        public Position positionValue;
-        public Guid guidValue;
-        //public NbtCompound nbtValue;
-        public Particle particleValue;
+	public struct EntityMetadataEntry
+	{
+		public byte IndexKey;
+		public MetadataType MetaType;
 
-        public EntityMetadataEntry(byte indexKey, MetadataType type)
-        {
-            this.indexKey = indexKey;
-            this.type = type;
-            byteValue = 0;
-            varIntValue = 0;
-            floatValue = 0;
-            boolValue = false;
-            stringValue = null;
-            slotDataValue = new SlotData();
-            rotationValue = new Vector3();
-            positionValue = new Position();
-            guidValue = new Guid();
-            //nbtValue = null;
-            particleValue = new Particle();
-        }
+		public byte ByteValue;
+		public int VarIntValue;
+		public float FloatValue;
+		public bool BoolValue;
+		public string StringValue;
+		public SlotData SlotDataValue;
+		public Vector3 RotationValue;
+		public BlockPos PositionValue;
+		public Guid GuidValue;
+		//public NbtCompound nbtValue;
+		public Particle ParticleValue;
 
-        public enum MetadataType
-        {
-            Byte = 0,
-            VarInt = 1,
-            Float = 2,
-            String = 3,
-            Chat = 4,
-            OptChat = 5,
-            Slot = 6,
-            Boolean = 7,
-            Rotation = 8,
-            Position = 9,
-            OptPosition = 10,
-            Direction = 11,
-            OptUUID = 12,
-            OptBlockID = 13,
-            NBT = 14,
-            Particle = 15
-        }
-    }
+		public EntityMetadataEntry(byte indexKey, MetadataType type)
+		{
+			IndexKey = indexKey;
+			MetaType = type;
+			ByteValue = 0;
+			VarIntValue = 0;
+			FloatValue = 0;
+			BoolValue = false;
+			StringValue = null;
+			SlotDataValue = new SlotData();
+			RotationValue = new Vector3();
+			PositionValue = new BlockPos();
+			GuidValue = new Guid();
+			//nbtValue = null;
+			ParticleValue = new Particle();
+		}
+
+		public enum MetadataType
+		{
+			Byte = 0,
+			VarInt = 1,
+			Float = 2,
+			String = 3,
+			Chat = 4,
+			OptChat = 5,
+			Slot = 6,
+			Boolean = 7,
+			Rotation = 8,
+			Position = 9,
+			OptPosition = 10,
+			Direction = 11,
+			OptUUID = 12,
+			OptBlockID = 13,
+			NBT = 14,
+			Particle = 15
+		}
+	}
 }

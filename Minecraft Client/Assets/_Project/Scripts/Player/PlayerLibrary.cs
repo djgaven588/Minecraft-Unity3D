@@ -7,77 +7,63 @@ using System.Threading.Tasks;
 /// <summary>
 /// Holds the collection of <see cref="Player"/>s on the server we're connected to
 /// </summary>
-public static class PlayerLibrary
+public class PlayerLibrary
 {
-    private static Dictionary<Guid, Player> players = new Dictionary<Guid, Player>();
+	public PlayerList PlayerList { get; }
 
-    /// <summary>
-    /// Initialize the PlayerLibrary, which handles setting up events and gets everything ready for packet receiving.
-    /// </summary>
-    public static void Initialize()
-    {
-        // This is unused right now, but will be good for when event handling is setup.
-        players.Clear();
-    }
+	public PlayerLibrary(PlayerList playerList)
+	{
+		PlayerList = playerList;
+	}
 
-    /// <summary>
-    /// Takes a player info packet, and uses the contained data to update values in this class.
-    /// </summary>
-    /// <param name="packet"></param>
-    public static void HandleUpdatePacket(PlayerInfoPacket packet)
-    {
-        switch (packet.messageAction)
-        {
-            case PlayerInfoPacket.MessageAction.AddPlayer:
-                for (int i = 0; i < packet.addPlayerActions.Length; i++)
-                {
-                    PlayerInfoPacket.AddPlayerAction add = packet.addPlayerActions[i];
-                    if(!players.ContainsKey(add.guid))
-                        players.Add(add.guid, new Player(add.hasDisplayName, add.displayName, null, 0, add.gameMode, add.ping, add.name));
-                }
-                break;
-            case PlayerInfoPacket.MessageAction.UpdateGameMode:
-                for (int i = 0; i < packet.updateGamemodeActions.Length; i++)
-                {
-                    PlayerInfoPacket.UpdateGamemodeAction update = packet.updateGamemodeActions[i];
-                    if (players.ContainsKey(update.guid))
-                        players[update.guid].gameMode = update.gameMode;
-                }
-                break;
-            case PlayerInfoPacket.MessageAction.UpdateLatency:
-                for (int i = 0; i < packet.updateLatencyActions.Length; i++)
-                {
-                    PlayerInfoPacket.UpdateLatencyAction update = packet.updateLatencyActions[i];
-                    if (players.ContainsKey(update.guid))
-                        players[update.guid].ping = update.ping;
-                }
-                break;
-            case PlayerInfoPacket.MessageAction.UpdateDisplayName:
-                for (int i = 0; i < packet.updateDisplayNameActions.Length; i++)
-                {
-                    PlayerInfoPacket.UpdateDisplayNameAction update = packet.updateDisplayNameActions[i];
-                    if (players.ContainsKey(update.guid))
-                    {
-                        players[update.guid].hasDisplayName = update.hasDisplayName;
-                        players[update.guid].displayName = update.displayName;
-                    }
-                }
-                break;
-            case PlayerInfoPacket.MessageAction.RemovePlayer:
-                for (int i = 0; i < packet.removePlayerActions.Length; i++)
-                {
-                    PlayerInfoPacket.RemovePlayerAction remove = packet.removePlayerActions[i];
-                    if(players.ContainsKey(remove.guid))
-                        players.Remove(remove.guid);
-                }
-                break;
-            default:
-                break;
-        }
-    }
+	private Dictionary<Guid, Player> Players { get; set; } = new Dictionary<Guid, Player>();
 
-    public static Dictionary<Guid, Player> GetPlayers()
-    {
-        return players;
-    }
+	/// <summary>
+	/// Updates the player library with data from a <see cref="PlayerInfoPacket"/>
+	/// </summary>
+	/// <param name="packet"></param>
+	public void HandlePlayerInfoPacket(PlayerInfoPacket packet)
+	{
+		foreach (var action in packet.Actions)
+		{
+			// if removing a player, there's no need to look it up or create it
+			if (packet.Type == PlayerInfoPacket.ActionType.RemovePlayer)
+			{
+				Players.Remove(action.UUID);
+				continue;
+			}
+
+			// try to lookup player, otherwise add it to the player list
+			if (!Players.TryGetValue(action.UUID, out Player player))
+			{
+				player = new Player();
+				Players.Add(action.UUID, player);
+			}
+
+			switch (packet.Type)
+			{
+				case PlayerInfoPacket.ActionType.AddPlayer:
+					player.GameMode = action.GameMode;
+					player.Name = action.Name;
+					player.Ping = action.Ping;
+					player.DisplayName = action.DisplayName;
+					player.UUID = action.UUID;
+					break;
+				case PlayerInfoPacket.ActionType.UpdateDisplayName:
+					player.DisplayName = action.DisplayName;
+					break;
+				case PlayerInfoPacket.ActionType.UpdateGameMode:
+					player.GameMode = action.GameMode;
+					break;
+				case PlayerInfoPacket.ActionType.UpdateLatency:
+					player.Ping = action.Ping;
+					break;
+				default:
+					throw new Exception($"Invalid player info action type: {packet.Type}");
+			}
+		}
+
+		// update player list after handling all actions
+		PlayerList?.UpdatePlayerList(Players.Values.ToArray());
+	}
 }
