@@ -31,24 +31,23 @@ public struct Particle
 
 		slotData = new SlotData();
 
-		switch (UsedParticleType)
-		{
-			case ParticleType.MinecraftBlock:
-			case ParticleType.MinecraftFallingDust:
-				BlockState = PacketReader.ReadVarInt(reader);
-				break;
-			case ParticleType.MinecraftDust:
-				Red = PacketReader.ReadSingle(reader);
-				Green = PacketReader.ReadSingle(reader);
-				Blue = PacketReader.ReadSingle(reader);
-				Scale = PacketReader.ReadSingle(reader);
-				break;
-			case ParticleType.MinecraftItem:
-				//ReadSlotData(reader, out slotData);
-				throw new NotImplementedException("Particle: SlotData is not yet handled");
-				//break;
-		}
-	}
+        switch (UsedParticleType)
+        {
+            case ParticleType.MinecraftBlock:
+            case ParticleType.MinecraftFallingDust:
+                BlockState = PacketReader.ReadVarInt(reader);
+                break;
+            case ParticleType.MinecraftDust:
+                Red = PacketReader.ReadSingle(reader);
+                Green = PacketReader.ReadSingle(reader);
+                Blue = PacketReader.ReadSingle(reader);
+                Scale = PacketReader.ReadSingle(reader);
+                break;
+            case ParticleType.MinecraftItem:
+                PacketReader.ReadSlotData(reader, out slotData);
+                break;
+        }
+    }
 
 	public enum ParticleType
 	{

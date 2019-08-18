@@ -86,7 +86,14 @@ public class GameManager : MonoBehaviour
 			{
 				foreach (var packet in _packetReceiveQueue)
 				{
-					HandlePacket(packet);
+                    try
+                    {
+                        HandlePacket(packet);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError(e.ToString());
+                    }
 				}
 				_packetReceiveQueue.Clear();
 			}
@@ -325,7 +332,16 @@ public class GameManager : MonoBehaviour
 				PlayerLibrary.HandlePlayerInfoPacket(new PlayerInfoPacket(data));
 				break;
 			case ClientboundIDs.ChatMessage:
-				Chat.HandleChatPacket(new ChatMessagePacket(data));
+                ChatMessage chatMsg = new ChatMessage(new ChatMessagePacket(data));
+                ChatHistoryManager.AddMessage(chatMsg.PlaintextMessage);
+				break;
+            case ClientboundIDs.EntityMetadata:
+                EntityMetadataPacket metadata = new EntityMetadataPacket(data);
+
+                Debug.Log(metadata.ToString());
+                break;
+			default:
+                //Debug.Log($"Case {data.ID} is not handled!");
 				break;
 		}
 	}
